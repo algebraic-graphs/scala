@@ -1,9 +1,7 @@
 package alga
 
 // TODO: add GraphLike
-
 sealed trait Graph[+A] {
-
     def +[B >: A](that: Graph[B]): Graph[B] = Overlay(this, that)
     def *[B >: A](that: Graph[B]): Graph[B] = Connect(this, that)
 
@@ -38,8 +36,36 @@ sealed trait Graph[+A] {
         case Connect(x, y) => x.toList ++ y.toList
     }
 
-    // TODO: Requires the right graph equality
-    // def isSubgraphOf[A](x: Graph[A]): Boolean = this + x == x
+    def vertexSet[B >: A]: Set[B] = this match {
+        case Empty         => Set.empty
+        case Vertex(x)     => Set(x)
+        case Overlay(x, y) => x.vertexSet ++ y.vertexSet
+        case Connect(x, y) => x.vertexSet ++ y.vertexSet
+    }
+
+    def edgeSet[B >: A]: Set[(B, B)] = this match {
+        case Empty         => Set.empty
+        case Vertex(x)     => Set.empty
+        case Overlay(x, y) => x.edgeSet ++ y.edgeSet
+        case Connect(x, y) =>
+            x.vertexSet.flatMap({a: A => y.vertexSet.map({b: A => (a, b)})})
+    }
+
+    // TODO: Simplify.
+    override def equals(that: Any): Boolean =
+        if (this eq Empty) that match {
+            case Vertex(_)     => false
+            case Overlay(_, _) => false
+            case Connect(_, _) => false
+            case _: Graph[A]   => true  // Here that must be Empty.
+            case _             => false
+        }
+        else that match {
+            case that: Graph[A] => vertexSet == that.vertexSet && edgeSet == that.edgeSet
+            case _              => false
+        }
+
+    def isSubgraphOf[A](x: Graph[A]): Boolean = this + x == x
 }
 
 final case object Empty                                extends Graph[Nothing]
@@ -93,10 +119,10 @@ object Graph {
 
 object App {
     def main(args : Array[String]) {
-        val e = Empty
-        val x = Vertex("x")
-        val y = Vertex("y")
-        val xy = Graph.edge(x, y)
+        val e = Graph.empty
+        val x = Graph.vertex("x")
+        val y = Graph.vertex("y")
+        val xy = x * y
         val ee = e + e * e;
         val vs = Graph.vertices(List(1,2,3,4,5))
         println("e .isEmpty: " + e.isEmpty)
@@ -108,6 +134,7 @@ object App {
         println("vs.induce(_ > 3): " + vs.induce(_ > 3))
         println("path   (List(2,1,3)): " + Graph.path(List(2,1,3)))
         println("circuit(List(2,1,3)): " + Graph.circuit(List(2,1,3)))
-        // println("isSubgrapOf(x, xy): " + x.isSubgraphOf(xy))
+        println("isSubgraphOf(x, xy): " + x.isSubgraphOf(xy))
+        println("isSubgraphOf(xy, x): " + xy.isSubgraphOf(x))
     }
 }
