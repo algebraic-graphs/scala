@@ -101,7 +101,7 @@ object App {
         val x = Vertex("x")
         val y = Vertex("y")
         val xy = Graph.edge(x, y)
-        val ee = e + e;
+        val ee = e + e * e;
         val vs = Graph.vertices(List(1,2,3,4,5))
         println("e .isEmpty: " + e.isEmpty)
         println("x .isEmpty: " + x.isEmpty)
