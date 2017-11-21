@@ -1,8 +1,6 @@
 package alga
 
-// TODO:
-// trait GraphLike[A, +This] {
-// }
+// TODO: add GraphLike
 
 sealed trait Graph[+A] {
 
@@ -41,16 +39,14 @@ sealed trait Graph[+A] {
     }
 
     // TODO: Requires the right graph equality
-    // def isSubgraphOf[A](x: Graph[A]): Boolean =
-    //     Overlay(this, x) == x
+    // def isSubgraphOf[A](x: Graph[A]): Boolean = this + x == x
 }
 
-case object Empty                                extends Graph[Nothing]
-case class  Vertex [A](a: A                    ) extends Graph[A]
-case class  Overlay[A](x: Graph[A], y: Graph[A]) extends Graph[A]
-case class  Connect[A](x: Graph[A], y: Graph[A]) extends Graph[A]
+final case object Empty                                extends Graph[Nothing]
+final case class  Vertex [A](a: A                    ) extends Graph[A]
+final case class  Overlay[A](x: Graph[A], y: Graph[A]) extends Graph[A]
+final case class  Connect[A](x: Graph[A], y: Graph[A]) extends Graph[A]
 
-// This can be turned into a generic interface
 object Graph {
     def empty: Graph[Nothing] = Empty
 
