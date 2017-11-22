@@ -1,9 +1,19 @@
-package alga
-
+// package alga
 // TODO: add GraphLike
 sealed trait Graph[+A] {
     def +[B >: A](that: Graph[B]): Graph[B] = Overlay(this, that)
     def *[B >: A](that: Graph[B]): Graph[B] = Connect(this, that)
+
+    override def toString = {
+        def go(p: Boolean, graph: Graph[A]): String = graph match {
+            case Empty              => "empty"
+            case Vertex(x)          => x.toString
+            case Overlay(x, y) if p => "(" + go(false, graph) + ")"
+            case Overlay(x, y)      => go(false, x) + " + " + go(false, y)
+            case Connect(x, y)      => go(true , x) + " * " + go(true , y)
+        }
+        go(false, this);
+    }
 
     def isEmpty: Boolean = this match {
         case Empty         => true
@@ -27,7 +37,18 @@ sealed trait Graph[+A] {
     }
 
     def induce(p: A => Boolean): Graph[A] =
-        flatMap({x => if (p(x)) Vertex(x) else Empty})
+        flatMap { x => if (p(x)) Vertex(x) else Empty }
+
+    def removeVertex[B >: A](x: B): Graph[A] = induce(_ != x)
+
+    def replaceVertex[B >: A](x: B, y: B): Graph[B] =
+        map { z => if (x == z) y else x }
+
+    def mergeVertices[B >: A](p: A => Boolean, x: B): Graph[B] =
+        map { y => if (p(y)) x else y }
+
+    def splitVertex[B >: A](x: B, ys: List[B]): Graph[B] =
+        flatMap { v => if (x == v) Graph.vertices(ys) else Vertex(v) }
 
     def toList: List[A] = this match {
         case Empty         => Nil
@@ -47,11 +68,11 @@ sealed trait Graph[+A] {
         case Empty         => Set.empty
         case Vertex(x)     => Set.empty
         case Overlay(x, y) => x.edgeSet ++ y.edgeSet
-        case Connect(x, y) =>
-            x.vertexSet.flatMap({a: A => y.vertexSet.map({b: A => (a, b)})})
+        case Connect(x, y) => x.edgeSet ++ y.edgeSet ++
+            x.vertexSet.flatMap { a: A => y.vertexSet.map { b: A => (a, b) } }
     }
 
-    // TODO: Simplify.
+    // TODO: Simplify or replace with a separate non-structural equality operator.
     override def equals(that: Any): Boolean =
         if (this eq Empty) that match {
             case Vertex(_)     => false
@@ -81,7 +102,7 @@ object Graph {
 
     def edge[A](x: A, y: A): Graph[A] = Connect(Vertex(x), Vertex(y))
     def edges[A](xs: List[(A, A)]): Graph[A] =
-        overlays(xs.map({case (x, y) => edge(x, y)}))
+        overlays(xs.map { case (x, y) => edge(x, y) })
 
     def overlay[A](x: Graph[A], y: Graph[A]): Graph[A] = x + y
     def overlays[A](xs: List[Graph[A]]): Graph[A] =
@@ -107,8 +128,8 @@ object Graph {
     }
 
     def box[A,B](x: Graph[A], y: Graph[B]): Graph[(A, B)] = {
-        val xs = y.toList.map({ b => x.map({a => (a, b)}) })
-        val ys = x.toList.map({ a => y.map({b => (a, b)}) })
+        val xs = y.toList.map { b => x.map { a => (a, b) } }
+        val ys = x.toList.map { a => y.map { b => (a, b) } }
         overlays(xs ++ ys)
     }
     def mesh[A,B](xs: List[A], ys: List[B]): Graph[(A, B)] =
