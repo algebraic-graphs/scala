@@ -1,3 +1,7 @@
 *.class
 *.log
 target
+/index.html
+/index.js
+/lib
+/alga
