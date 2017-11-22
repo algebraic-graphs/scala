@@ -15,31 +15,54 @@ sealed trait Graph[+A] {
         go(false, this);
     }
 
-    def isEmpty: Boolean = this match {
-        case Empty         => true
-        case Vertex(x)     => false
-        case Overlay(x, y) => x.isEmpty && y.isEmpty
-        case Connect(x, y) => x.isEmpty && y.isEmpty
-    }
+    /** Generalised graph folding: recursively collapse the graph by applying
+    *   the provided functions to the leaves and internal nodes of the expression.
+    *   Complexity: '''O(s)''' applications of given functions. As an example, the
+    *   complexity of the method [[size]] is '''O(s)''', since all functions
+    *   have cost '''O(1)''':
+    *   {{{def size: Int = foldg[Int](1, { _ => 1 }, _+_, _+_)}}}
+    *   @param e the value to replace [[Empty]] leaves.
+    *   @param v the function to apply to [[Vertex]] leaves.
+    *   @param o the function to apply to [[Overlay]] nodes.
+    *   @param c the function to apply to [[Connect]] nodes.
+    *   @return  the result of graph folding.
+    */
+    def foldg[B](e: B, v: A => B, o: (B, B) => B, c: (B, B) => B): B =
+        this match {
+            case Empty         => e
+            case Vertex(x)     => v(x)
+            case Overlay(x, y) => o(x.foldg(e, v, o, c), y.foldg(e, v, o, c))
+            case Connect(x, y) => c(x.foldg(e, v, o, c), y.foldg(e, v, o, c))
+        }
 
-    def map[B](f: A => B): Graph[B] = this match {
-        case Empty         => Empty
-        case Vertex(x)     => Vertex(f(x))
-        case Overlay(x, y) => x.map(f) + y.map(f)
-        case Connect(x, y) => x.map(f) * y.map(f)
-    }
+    /** Check if the graph is empty. Complexity: '''O(s)''' time.
+    *   @return `true` if the graph is empty, and `false` otherwise.
+    */
+    def isEmpty: Boolean = foldg[Boolean](true, { _ => false }, _&&_, _&&_)
 
-    def flatMap[B](f: A => Graph[B]): Graph[B] = this match {
-        case Empty         => Empty
-        case Vertex(x)     => f(x)
-        case Overlay(x, y) => x.flatMap(f) + y.flatMap(f)
-        case Connect(x, y) => x.flatMap(f) * y.flatMap(f)
-    }
+    /** The size of the graph, that is the number of leaves of the expression
+    *   including [[Empty]] leaves. Complexity: '''O(s)''' time.
+    *   @return the size of the graph.
+    */
+    def size: Int = foldg[Int](1, { _ => 1 }, _+_, _+_)
+
+    /** Check if the graph contains a given vertex. Complexity: '''O(s)''' time.
+    *   @param x the vertex to check.
+    *   @return  `true` if the graph contains `x`, and `false` otherwise.
+    */
+    def hasVertex[B >: A](x: B): Boolean = foldg[Boolean](false, _ == x, _||_, _||_)
+
+    def map[B](f: A => B): Graph[B] =
+        foldg(Empty, f.andThen(Vertex[B]), Overlay[B], Connect[B])
+
+    def flatMap[B](f: A => Graph[B]): Graph[B] =
+        foldg(Empty, f, Overlay[B], Connect[B])
 
     def induce(p: A => Boolean): Graph[A] =
         flatMap { x => if (p(x)) Vertex(x) else Empty }
 
-    def removeVertex[B >: A](x: B): Graph[A] = induce(_ != x)
+    def removeVertex[B >: A](x: B): Graph[A] =
+        induce(_ != x)
 
     def replaceVertex[B >: A](x: B, y: B): Graph[B] =
         map { z => if (x == z) y else x }
@@ -50,19 +73,11 @@ sealed trait Graph[+A] {
     def splitVertex[B >: A](x: B, ys: List[B]): Graph[B] =
         flatMap { v => if (x == v) Graph.vertices(ys) else Vertex(v) }
 
-    def toList: List[A] = this match {
-        case Empty         => Nil
-        case Vertex(x)     => List(x)
-        case Overlay(x, y) => x.toList ++ y.toList
-        case Connect(x, y) => x.toList ++ y.toList
-    }
+    def toList: List[A] =
+        foldg[List[A]](Nil, { x => List(x) }, _++_, _++_)
 
-    def vertexSet[B >: A]: Set[B] = this match {
-        case Empty         => Set.empty
-        case Vertex(x)     => Set(x)
-        case Overlay(x, y) => x.vertexSet ++ y.vertexSet
-        case Connect(x, y) => x.vertexSet ++ y.vertexSet
-    }
+    def vertexSet[B >: A]: Set[B] =
+        foldg[Set[B]](Set.empty, { x => Set(x) }, _++_, _++_)
 
     def edgeSet[B >: A]: Set[(B, B)] = this match {
         case Empty         => Set.empty
