@@ -71,6 +71,14 @@ sealed trait Graph[+A] {
     */
     def *[B >: A](that: Graph[B]): Graph[B] = Connect(this, that)
 
+    /** Comparison operator which establishes a partial order. Complexity: '''O(s + m * log(m))'''
+     *   time and memory.
+     *   @param that the graph to be compared with this graph.
+     *   @return  `true` if this graph is greater than that, and false` otherwise.
+     *   {{{this <= that == this isSubgraphOf that}}}
+     */
+    def <=[B >: A](that: Graph[B]): Boolean = this isSubgraphOf that
+
     /** Pretty-print the graph expression into a `String`. Complexity:
     *   '''O(s)''' time.
     *   @return the graph expression as a `String`.
