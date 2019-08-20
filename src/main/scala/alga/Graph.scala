@@ -75,7 +75,6 @@ sealed trait Graph[+A] {
     /** Operator which establishes a total order on graphs by size-lexicographic comparison.
      *   @param that the graph to be compared with this graph.
      *   @return  `true` if this graph is greater than that, and false` otherwise.
-     *   {{{this <= that == this isSubgraphOf that}}}
      */
     def <=[B >: A](that: Graph[B])(implicit ord: math.Ordering[B]): Boolean = {
         def compareSeq[T](a: Seq[T], b: Seq[T])(implicit ord: math.Ordering[T]) =
