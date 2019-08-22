@@ -1,4 +1,5 @@
 package alga
+import scalaz._, Scalaz._
 
 // TODO: add GraphLike
 
@@ -70,6 +71,21 @@ sealed trait Graph[+A] {
     *   {{{this * that == Connect(this, that)}}}
     */
     def *[B >: A](that: Graph[B]): Graph[B] = Connect(this, that)
+
+    /** Operator which establishes a total order on graphs by size-lexicographic comparison.
+     *   @param that the graph to be compared with this graph.
+     *   @return  `true` if this graph is greater than that, and false` otherwise.
+     */
+    def <=[B >: A](that: Graph[B])(implicit ord: math.Ordering[B]): Boolean = {
+        def compareSeq[T](a: Seq[T], b: Seq[T])(implicit ord: math.Ordering[T]) =
+            if ((a.sorted zip b.sorted).forall(elems => ord.lteq(elems._1, elems._2))) Ordering.LT
+            else Ordering.GT
+
+        ((this.vertexCount ?|? that.vertexCount)                        |+|
+        (compareSeq(this.vertexSet.toVector, that.vertexSet.toVector))  |+|
+        (this.edgeCount ?|? that.edgeCount)                             |+|
+        compareSeq(this.edgeSet.toVector, that.edgeSet.toVector)) == Ordering.LT
+    }
 
     /** Pretty-print the graph expression into a `String`. Complexity:
     *   '''O(s)''' time.
