@@ -9,7 +9,7 @@ import scalaz._, Scalaz._
  *  implementation.
  *
  *  The [[Graph]] trait is an immutable representation for graphs with vertices
- *  if type `A`. It comes with four graph construction primitives [[Empty]],
+ *  of type `A`. It comes with four graph construction primitives [[Empty]],
  *  [[Vertex]], [[Overlay]] and [[Connect]]. We also define operators [[+]] and
  *  [[*]] as convenient shortcuts for constructors [[Overlay]] and [[Connect]],
  *  respectively.
